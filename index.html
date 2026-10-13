@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOCK EASY - Medicine Stock Management SaaS</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="index.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for data visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Demo Role Controller Helper -->
+    <div class="demo-role-switcher" id="demo-switcher">
+        <span>DEMO CONTROLS:</span>
+        <button class="demo-role-btn active" onclick="switchDemoRole('public')">Public</button>
+        <button class="demo-role-btn" onclick="switchDemoRole('owner')">Shop Owner</button>
+        <button class="demo-role-btn" onclick="switchDemoRole('admin')">Central Admin</button>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-notification" class="toast">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i id="toast-icon" class="fa-solid fa-circle-info"></i>
+            <span id="toast-message">Notification message here</span>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div id="invoice-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-receipt"></i> Customer Invoice</span>
+                <button onclick="closeInvoiceModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+            <div id="invoice-print-area" class="invoice-box"></div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="simulateDownloadInvoice()"><i class="fa-solid fa-download"></i> Download PDF</button>
+                <button class="btn btn-primary" onclick="simulatePrintInvoice()"><i class="fa-solid fa-print"></i> Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo-section" onclick="navigateTo('landing')">
+                <i class="fa-solid fa-boxes-stacked logo-icon"></i>
+                <span>STOCK EASY</span>
+            </div>
+            
+            <div class="nav-actions">
+                <div id="active-shop-display" style="display: none; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                    <i class="fa-solid fa-store" style="color: var(--primary);"></i>
+                    <span id="active-shop-name" style="font-weight: 600; font-size: 0.9rem;">My Pharmacy</span>
+                </div>
+                <div id="role-badge" class="badge-role badge-public">Public / Guest</div>
+                
+                <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()" style="padding: 0.5rem; border-radius: 50%; width: 2.2rem; height: 2.2rem;">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                
+                <button id="header-auth-btn" class="btn btn-primary" onclick="navigateTo('login')">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Sidebar (Hidden for public landing pages, visible after auth) -->
+            <aside class="sidebar" id="app-sidebar" style="display: none;">
+                <!-- Owner Navigation Menu -->
+                <div id="owner-menu-items">
+                    <div class="sidebar-menu-title">Main</div>
+                    <div class="sidebar-item active" onclick="navigateTo('owner-dashboard')" id="nav-owner-dashboard">
+                        <i class="fa-solid fa-chart-pie"></i> Dashboard
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('billing-fefo')" id="nav-billing-fefo">
+                        <i class="fa-solid fa-cash-register"></i> Billing (FEFO)
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('medicines-catalog')" id="nav-medicines-catalog">
+                        <i class="fa-solid fa-prescription-bottle-medical"></i> Medicines Catalog
+                    </div>
+                    
+                    <div class="sidebar-menu-title">Stock Management</div>
+                    <div class="sidebar-item" onclick="navigateTo('stock-entry')" id="nav-stock-entry">
+                        <i class="fa-solid fa-dolly"></i> Stock Batch Entry
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('inventory-overview')" id="nav-inventory-overview">
+                        <i class="fa-solid fa-warehouse"></i> Inventory Overview
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('dealers')" id="nav-dealers">
+                        <i class="fa-solid fa-truck-field"></i> Dealers & Suppliers
+                    </div>
+                    
+                    <div class="sidebar-menu-title">Analytics & Records</div>
+                    <div class="sidebar-item" onclick="navigateTo('owner-analytics')" id="nav-owner-analytics">
+                        <i class="fa-solid fa-chart-line"></i> Analytics Dashboard
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('bills-history')" id="nav-bills-history">
+                        <i class="fa-solid fa-history"></i> Bills/Sales History
+                    </div>
+                    <div class="sidebar-item" onclick="navigateTo('settings')" id="nav-settings">
+                        <i class="fa-solid fa-sliders"></i> Settings & Profile
+                    </div>
+                </div>
+
+                <!-- Admin Navigation Menu -->
+                <div id="admin-menu-items" style="display: none;">
+                    <div class="sidebar-menu-title">Central Oversight</div>
+                    <div class="sidebar-item" onclick="navigateTo('central-oversight')" id="nav-central-oversight">
+                        <i class="fa-solid fa-shield-halved"></i> Central Control Panel
+                    </div>
+                </div>
+                
+                <!-- Logout Button at Sidebar Bottom -->
+                <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--bg-card-border);">
+                    <div class="sidebar-item" onclick="logout()" style="color: var(--danger);">
+                        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Pane -->
+            <main class="content-area">
+                
+                <!-- View 1: Public Landing Page -->
+                <section id="view-landing" class="view-panel active-view">
+                    <div class="landing-hero">
+                        <h1>Stop Expiry Waste with <span>FEFO Smart Flow</span></h1>
+                        <p>Stock Easy guides your pharmacy staff to sell drugs with the closest expiry first. Automated batch tracking, compliance logs, and platform oversight in one place.</p>
+                        <div style="display: flex; gap: 1rem; justify-content: center;">
+                            <button class="btn btn-primary" onclick="navigateTo('register-details')">Register Your Pharmacy <i class="fa-solid fa-arrow-right"></i></button>
+                            <button class="btn btn-secondary" onclick="navigateTo('verification-status')">Check Shop License Status</button>
+                        </div>
+                    </div>
+
+                    <div class="landing-features">
+                        <h2 class="section-title">Why Pharmacists Love Stock Easy</h2>
+                        <div class="grid-cols-3">
+                            <div class="card feature-card">
+                                <div class="feature-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                                <h3>Strict FEFO Billing</h3>
+                                <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">POS highlights batches closest to expiry. Prevent stock from rotting on shelves.</p>
+                            </div>
+                            <div class="card feature-card">
+                                <div class="feature-icon"><i class="fa-solid fa-bell"></i></div>
+                                <h3>Urgency Alerts</h3>
+                                <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Batches color-coded by shelf life: critical alerts when stock falls below 30 or 90 days.</p>
+                            </div>
+                            <div class="card feature-card">
+                                <div class="feature-icon"><i class="fa-solid fa-microchip"></i></div>
+                                <h3>AI Data Copilot</h3>
+                                <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Ask plain English questions like "Which batches expire soon?" and get instant data-driven answers.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 4rem;">
+                        <h2 class="section-title">SaaS Subscription Tiers</h2>
+                        <div class="pricing-plans">
+                            <div class="card pricing-card">
+                                <div>
+                                    <h3>Base Plan</h3>
+                                    <div class="price">$29<span>/month</span></div>
+                                    <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">For small single-owner community pharmacies.</p>
+                                    <ul style="list-style-type:none; font-size: 0.9rem; display:flex; flex-direction:column; gap:0.5rem;">
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Up to 500 Medicines</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> FEFO Billing POS</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> 3 Staff Members</li>
+                                        <li><i class="fa-solid fa-xmark" style="color:var(--danger);"></i> Analytics & AI Assistant</li>
+                                    </ul>
+                                </div>
+                                <button class="btn btn-secondary" onclick="navigateTo('register-details')" style="margin-top: 2rem; width: 100%;">Select Base</button>
+                            </div>
+
+                            <div class="card pricing-card premium">
+                                <div>
+                                    <span class="fefo-badge">Popular</span>
+                                    <h3>Pro Plan</h3>
+                                    <div class="price">$59<span>/month</span></div>
+                                    <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Complete automation package for growing drugstores.</p>
+                                    <ul style="list-style-type:none; font-size: 0.9rem; display:flex; flex-direction:column; gap:0.5rem;">
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Unlimited Medicines</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> FEFO Billing POS</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> 10 Staff Members</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> 7-Day Chart Analytics</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> GenAI Shop Assistant</li>
+                                    </ul>
+                                </div>
+                                <button class="btn btn-primary" onclick="navigateTo('register-details')" style="margin-top: 2rem; width: 100%;">Select Pro</button>
+                            </div>
+
+                            <div class="card pricing-card">
+                                <div>
+                                    <h3>Enterprise</h3>
+                                    <div class="price">$149<span>/month</span></div>
+                                    <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">For multi-store franchises with warehouse distribution.</p>
+                                    <ul style="list-style-type:none; font-size: 0.9rem; display:flex; flex-direction:column; gap:0.5rem;">
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Multi-store Aggregation</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Premium API Integrations</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Custom Dealer Auto-reorder</li>
+                                        <li><i class="fa-solid fa-check" style="color:var(--success);"></i> Dedicated Support Manager</li>
+                                    </ul>
+                                </div>
+                                <button class="btn btn-secondary" onclick="navigateTo('register-details')" style="margin-top: 2rem; width: 100%;">Contact Sales</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 2: Public Login Page -->
+                <section id="view-login" class="view-panel">
+                    <div class="card login-card-decorative">
+                        <div class="login-header-decorative">
+                            <div class="login-icon-circle"><i class="fa-solid fa-unlock-keyhole"></i></div>
+                            <h2>Secure Portal Login</h2>
+                            <p>Sign in to access your pharmacy dashboard</p>
+                        </div>
+                        
+                        <form id="login-form" onsubmit="handleLoginSubmit(event)">
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label class="form-label" style="font-size: 0.8rem; color: var(--text-muted);">Email Address</label>
+                                <input type="email" id="login-email" class="form-input" placeholder="e.g. owner@citypharma.com" required style="border-radius: 8px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 2.2rem;">
+                                <label class="form-label" style="font-size: 0.8rem; color: var(--text-muted);">Password</label>
+                                <input type="password" id="login-password" class="form-input" placeholder="••••••••" required style="border-radius: 8px;">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; border-radius: 8px;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</button>
+                        </form>
+
+                        <div style="margin-top: 2rem; text-align: center; border-top: 1px solid var(--bg-card-border); padding-top: 1.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">QUICK DEMO LOGINS</span>
+                            <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; justify-content: center;">
+                                <button class="btn btn-secondary" onclick="fillDemoCreds('owner')" style="font-size: 0.75rem; padding: 0.45rem 1rem; border-radius: 6px;">Shop Owner</button>
+                                <button class="btn btn-secondary" onclick="fillDemoCreds('admin')" style="font-size: 0.75rem; padding: 0.45rem 1rem; border-radius: 6px;">Central Admin</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 3: Public Verification Status -->
+                <section id="view-verification-status" class="view-panel">
+                    <div style="max-width: 600px; margin: 0 auto;">
+                        <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> Verification Status Lookup</h2>
+                        <div class="card" style="margin-bottom: 2rem;">
+                            <div class="form-group">
+                                <label class="form-label">Enter Shop Registered Email or License ID</label>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <input type="text" id="status-search-query" class="form-input" placeholder="e.g., owner@citypharma.com or DL-48593/26">
+                                    <button class="btn btn-primary" onclick="lookupVerificationStatus()">Search</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Area (Hidden initially) -->
+                        <div id="status-result-box" class="card" style="display: none;">
+                            <h3 id="status-result-title">City Pharmacy Inc.</h3>
+                            <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Submitted on: <span id="status-result-date">2026-06-12</span></p>
+                            
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding: 1rem; border-radius: var(--border-radius); background-color: var(--bg-input);">
+                                <strong>License ID:</strong>
+                                <span id="status-result-license" style="font-family: monospace;">DL-19283/26</span>
+                                <strong>Status:</strong>
+                                <span id="status-result-badge" class="badge-status status-pending">Pending Approval</span>
+                            </div>
+
+                            <div class="timeline">
+                                <div class="timeline-item complete" id="tl-step-1">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-title">Application Submitted</div>
+                                    <div class="timeline-date" id="tl-date-1">2026-06-12 14:35</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);">Pharmacy registration details and drug license documents uploaded successfully.</p>
+                                </div>
+                                <div class="timeline-item" id="tl-step-2">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-title">Central Team Review</div>
+                                    <div class="timeline-date" id="tl-date-2">In Progress</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);" id="tl-desc-2">The Stock Easy verification team is auditing the submitted drug license with government regulatory databases.</p>
+                                </div>
+                                <div class="timeline-item" id="tl-step-3">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-title">Account Activation</div>
+                                    <div class="timeline-date" id="tl-date-3">Pending Verification</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);" id="tl-desc-3">Once verified, the owner will receive login access to configure active medicine stock FEFO modules.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 4: Shop Registration Details -->
+                <section id="view-register-details" class="view-panel">
+                    <div style="max-width: 1000px; margin: 0 auto;" class="card">
+                        <div class="register-layout-grid">
+                            
+                            <!-- Left Column: Registration Form -->
+                            <div class="register-form-pane">
+                                <h3 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.5rem; font-weight: 700;">Create Shop Account</h3>
+                                <form onsubmit="handleRegistrationDetails(event)">
+                                    
+                                    <!-- Row 1: Name Fields -->
+                                    <div class="form-row-three">
+                                        <div class="form-group">
+                                            <input type="text" id="reg-first-name" class="form-input-clean" placeholder="First Name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-middle-name" class="form-input-clean" placeholder="Middle Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-last-name" class="form-input-clean" placeholder="Last Name" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 2: Business Name -->
+                                    <div class="form-group">
+                                        <input type="text" id="reg-business-name" class="form-input-clean" placeholder="Business Name" required>
+                                    </div>
+
+                                    <!-- Row 3: Country, City, State -->
+                                    <div class="form-row-three">
+                                        <div class="form-group">
+                                            <input type="text" id="reg-country" class="form-input-clean" placeholder="Country" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-city" class="form-input-clean" placeholder="City" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-state" class="form-input-clean" placeholder="State" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 4: Street Number, Pin code -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" id="reg-street-number" class="form-input-clean" placeholder="Street Number" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-pin-code" class="form-input-clean" placeholder="Pin code" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 5: Email Id -->
+                                    <div class="form-group">
+                                        <input type="email" id="reg-email-id" class="form-input-clean" placeholder="Email Id" required>
+                                    </div>
+
+                                    <!-- Row 6: Phone, Alt Phone -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="tel" id="reg-phone-number" class="form-input-clean" placeholder="Phone Number" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="tel" id="reg-alt-phone" class="form-input-clean" placeholder="Alternative Phone Number">
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 7: GST, Aadhaar -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" id="reg-gst-number" class="form-input-clean" placeholder="GST Number" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-aadhaar-number" class="form-input-clean" placeholder="Aadhaar Number" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 8: PAN, Certificate -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" id="reg-pan-number" class="form-input-clean" placeholder="Pan Card Number" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="reg-cert-number" class="form-input-clean" placeholder="Certificate Number" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Additional dropdown for SaaS tier selection -->
+                                    <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                                        <label class="form-label" style="font-size: 0.75rem; color: var(--text-muted);">Choose SaaS Subscription</label>
+                                        <select id="reg-saas-sub" class="form-select" style="background-color: var(--bg-input); border-color: var(--bg-card-border);">
+                                            <option value="Base">Base Plan ($29/mo)</option>
+                                            <option value="Pro" selected>Pro Plan ($59/mo)</option>
+                                            <option value="Enterprise">Enterprise Plan ($149/mo)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Register Button -->
+                                    <button type="submit" class="btn btn-register-coral" style="width: 100%;"><i class="fa-solid fa-user-plus"></i> REGISTER</button>
+                                    
+                                    <div style="margin-top: 1.5rem; text-align: left; font-size: 0.85rem;">
+                                        <span style="color: var(--text-muted);">Have you already an account?</span> 
+                                        <a href="#" onclick="event.preventDefault(); navigateTo('login')" style="color: #f05a30; font-weight: 700; text-decoration: none;">Sign In Here</a>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Right Column: Welcome branding & SVG illustration -->
+                            <div class="register-branding-pane">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                                    <i class="fa-solid fa-boxes-stacked" style="font-size: 2.2rem; color: #f05a30;"></i>
+                                    <span style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); letter-spacing: -1px;">StockEasy</span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 2rem;">Now it is very easy to maintain stock.<br>Save your time and enjoy the day.</p>
+                                
+                                <!-- Premium Pharmacist illustration -->
+                                <div class="pharmacist-illustration-container">
+                                    <svg viewBox="0 0 400 300" width="100%" height="220" style="display: block; margin: 0 auto;">
+                                        <defs>
+                                            <radialGradient id="glow-grad" cx="50%" cy="50%" r="50%">
+                                                <stop offset="0%" stop-color="rgba(240, 90, 48, 0.15)" />
+                                                <stop offset="100%" stop-color="rgba(240, 90, 48, 0)" />
+                                            </radialGradient>
+                                        </defs>
+                                        <!-- Glowing background circle -->
+                                        <circle cx="200" cy="150" r="120" fill="url(#glow-grad)" />
+                                        
+                                        <!-- Central Pulse Heart shape -->
+                                        <circle cx="200" cy="120" r="45" fill="rgba(240, 90, 48, 0.1)" />
+                                        <path d="M200 95 C190 85, 170 85, 160 95 C150 105, 150 125, 170 145 L200 175 L230 145 C250 125, 250 105, 240 95 C230 85, 210 85, 200 95 Z" fill="#f05a30" opacity="0.8" />
+                                        <!-- Pulse lines -->
+                                        <path d="M175 120 L188 120 L193 110 L198 135 L203 115 L207 125 L212 120 L225 120" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                        
+                                        <!-- Left Figure: Pharmacist Man -->
+                                        <g transform="translate(100, 100)">
+                                            <!-- Head -->
+                                            <circle cx="20" cy="40" r="16" fill="#fbcfe8" />
+                                            <path d="M10 30 C12 15, 28 15, 30 30 Z" fill="#475569" /> <!-- Hair -->
+                                            <!-- Body / White Coat -->
+                                            <path d="M4 60 C4 55, 36 55, 36 60 L36 120 L4 120 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                                            <path d="M4 60 L14 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <path d="M36 60 L26 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <!-- Shirt / Stethoscope -->
+                                            <rect x="18" y="56" width="4" height="20" fill="#f05a30" />
+                                            <path d="M12 60 C12 75, 28 75, 28 60" stroke="#475569" stroke-width="1.5" fill="none" />
+                                            <!-- Legs -->
+                                            <rect x="8" y="120" width="8" height="25" fill="#475569" />
+                                            <rect x="24" y="120" width="8" height="25" fill="#475569" />
+                                            <!-- Shoes -->
+                                            <path d="M8 145 C8 140, 20 140, 20 145 Z" fill="#f05a30" />
+                                            <path d="M24 145 C24 140, 36 140, 36 145 Z" fill="#f05a30" />
+                                        </g>
+
+                                        <!-- Right Figure: Pharmacist Woman -->
+                                        <g transform="translate(260, 100)">
+                                            <!-- Head -->
+                                            <circle cx="20" cy="40" r="16" fill="#fed7aa" />
+                                            <path d="M5 40 C5 20, 35 20, 35 40 L38 52 L2 52 Z" fill="#1e293b" /> <!-- Hair -->
+                                            <!-- Body / White Coat -->
+                                            <path d="M4 60 C4 55, 36 55, 36 60 L36 115 L4 115 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                                            <path d="M4 60 L14 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <path d="M36 60 L26 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <!-- Blue Skirt -->
+                                            <path d="M6 115 L34 115 L36 130 L4 130 Z" fill="#475569" />
+                                            <!-- Legs -->
+                                            <rect x="10" y="130" width="6" height="15" fill="#fed7aa" />
+                                            <rect x="24" y="130" width="6" height="15" fill="#fed7aa" />
+                                            <!-- Shoes -->
+                                            <path d="M6 145 L16 145 L20 149 L6 149 Z" fill="#f05a30" />
+                                            <path d="M20 145 L30 145 L34 149 L20 149 Z" fill="#f05a30" />
+                                        </g>
+                                    </svg>
+                                </div>
+
+                                <!-- Footer details -->
+                                <div style="margin-top: 2rem;">
+                                    <div class="social-links-row" style="display:flex; justify-content:center; gap:1.5rem; font-size:1.1rem; color:var(--text-muted); margin-bottom: 0.75rem;">
+                                        <i class="fa-brands fa-facebook-f social-icon-hover"></i>
+                                        <i class="fa-brands fa-google social-icon-hover"></i>
+                                        <i class="fa-brands fa-twitter social-icon-hover"></i>
+                                        <i class="fa-brands fa-instagram social-icon-hover"></i>
+                                    </div>
+                                    <span style="font-size:0.75rem; color:var(--text-muted);">© Copyright - StockEasy</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 5: Shop Registration Documents -->
+                <section id="view-register-documents" class="view-panel">
+                    <div style="max-width: 650px; margin: 0 auto;">
+                        <h2 class="section-title">Upload Regulatory Documents</h2>
+                        <div class="card">
+                            <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-file-shield"></i> Step 2: Verification Audit Upload</h3>
+                            <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 2rem;">Upload official state credentials. Our central oversight team reviews these documents to issue drug inventory permissions.</p>
+                            
+                            <form onsubmit="handleRegistrationDocuments(event)">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Drug License ID *</label>
+                                        <input type="text" id="reg-license-id" class="form-input" placeholder="e.g. DL-29384/26" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">PAN Card Number *</label>
+                                        <input type="text" id="reg-pan-id" class="form-input" placeholder="e.g. ABCDE1234F" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">GSTIN / Tax ID *</label>
+                                        <input type="text" id="reg-gst-id" class="form-input" placeholder="e.g. 27ABCDE1234F1Z5" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="form-label">Upload Drug License PDF, PAN, GST, and Shop Photos *</label>
+                                    <div class="upload-zone" onclick="triggerMockFileSelection()">
+                                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                                        <h4>Drag & Drop files or click to upload</h4>
+                                        <p style="color:var(--text-muted); font-size:0.8rem; margin-top:0.25rem;">Supported: PDF, JPG, PNG (Max 5MB per file)</p>
+                                    </div>
+                                </div>
+
+                                <!-- Uploaded files listing demo -->
+                                <div class="uploaded-docs-list" id="mock-uploaded-list">
+                                    <!-- Populated dynamically -->
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; margin-top: 2rem; align-items: center;">
+                                    <button type="button" class="btn btn-secondary" onclick="navigateTo('register-details')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check-double"></i> Submit Verification Request</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 6: Owner Dashboard (Home) -->
+                <section id="view-owner-dashboard" class="view-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2>Owner Dashboard</h2>
+                        <span id="dashboard-current-date" class="badge-status status-approved" style="padding: 0.4rem 1rem;">Date: 2026-06-14</span>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="kpi-container">
+                        <div class="card kpi-card">
+                            <div class="kpi-icon" style="background-color: rgba(6, 182, 212, 0.15); color: var(--primary);"><i class="fa-solid fa-receipt"></i></div>
+                            <div class="kpi-info">
+                                <h3>Total Sales Today</h3>
+                                <p id="kpi-today-sales">$1,240.00</p>
+                            </div>
+                        </div>
+                        <div class="card kpi-card">
+                            <div class="kpi-icon" style="background-color: rgba(16, 185, 129, 0.15); color: var(--success);"><i class="fa-solid fa-pills"></i></div>
+                            <div class="kpi-info">
+                                <h3>Active Batches</h3>
+                                <p id="kpi-active-batches">42 Batches</p>
+                            </div>
+                        </div>
+                        <div class="card kpi-card">
+                            <div class="kpi-icon" style="background-color: rgba(245, 158, 11, 0.15); color: var(--warning);"><i class="fa-solid fa-hourglass-end"></i></div>
+                            <div class="kpi-info">
+                                <h3>Expiring &lt; 90 Days</h3>
+                                <p id="kpi-expiring-soon" style="color: var(--warning);">8 Batches</p>
+                            </div>
+                        </div>
+                        <div class="card kpi-card">
+                            <div class="kpi-icon" style="background-color: rgba(244, 63, 94, 0.15); color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="kpi-info">
+                                <h3>Expired Stock Loss</h3>
+                                <p id="kpi-expired-loss" style="color: var(--danger);">$340.00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-cols-2">
+                        <!-- Chart Card -->
+                        <div class="card">
+                            <h3><i class="fa-solid fa-chart-line"></i> 7-Day Sales Performance</h3>
+                            <div class="chart-container">
+                                <canvas id="ownerSalesDashboardChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Near Expiry Alert Widget -->
+                        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <h3 style="color: var(--warning); display:flex; justify-content:space-between; align-items:center;">
+                                    <span><i class="fa-solid fa-bell"></i> Near Expiry Batches</span>
+                                    <button class="btn btn-secondary" onclick="navigateTo('inventory-overview')" style="font-size:0.7rem; padding:0.25rem 0.5rem;">See All</button>
+                                </h3>
+                                <div class="table-container" style="max-height: 190px; margin-top: 0.75rem;">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Medicine</th>
+                                                <th>Batch ID</th>
+                                                <th>Expiry Date</th>
+                                                <th>Qty</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashboard-expiry-table">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 7: Billing FEFO (POS Terminal) -->
+                <section id="view-billing-fefo" class="view-panel">
+                    <div class="billing-grid">
+                        
+                        <!-- Left Pane: Search Medicines and Select Batches -->
+                        <div class="billing-search-pane">
+                            <div class="card">
+                                <h3><i class="fa-solid fa-cart-shopping"></i> Sell Medicines (FEFO Guided)</h3>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; margin-bottom: 1rem;">
+                                    Enter medicine name below. The system automatically recommends the batch with the nearest expiry to avoid waste.
+                                </p>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Search Medicine Name</label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="bill-search-input" class="form-input" placeholder="Start typing paracetamol, amoxicillin..." oninput="searchBillMedicines()">
+                                        <!-- Suggestions dropdown -->
+                                        <div id="bill-suggestions" style="position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-card); border: 1px solid var(--bg-card-border); z-index: 10; border-radius: var(--border-radius); display: none; max-height: 200px; overflow-y: auto;">
+                                            <!-- Dynamically added suggestions -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selected Medicine Details & FEFO Batches -->
+                            <div class="card" id="billing-batches-card" style="display: none;">
+                                <h3 id="billing-selected-med-name">Paracetamol 500mg</h3>
+                                <div class="table-container" style="margin-top: 0.75rem;">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Batch ID</th>
+                                                <th>Expiry Date</th>
+                                                <th>Stock</th>
+                                                <th>Price</th>
+                                                <th>Expiry Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="billing-batches-tbody">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Pane: Invoice Cart -->
+                        <div class="billing-cart-pane">
+                            <h3 style="border-bottom: 1px solid var(--bg-card-border); padding-bottom: 0.75rem;"><i class="fa-solid fa-receipt"></i> Active Bill</h3>
+                            
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" id="cart-customer-name" class="form-input" value="Walk-in Customer">
+                            </div>
+
+                            <!-- Cart Items Scrollable -->
+                            <div class="cart-items-list" id="cart-items-list-container">
+                                <!-- Populated dynamically -->
+                                <div style="text-align: center; color: var(--text-muted); margin-top: 3rem;">
+                                    <i class="fa-solid fa-cart-arrow-down" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
+                                    <p>No medicines added to bill yet.</p>
+                                </div>
+                            </div>
+
+                            <!-- Cart Totals -->
+                            <div class="cart-summary">
+                                <div class="summary-row">
+                                    <span>Subtotal:</span>
+                                    <span id="cart-subtotal">$0.00</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Discount (Mock 0%):</span>
+                                    <span>$0.00</span>
+                                </div>
+                                <div class="summary-row total">
+                                    <span>Total Amount:</span>
+                                    <span id="cart-total">$0.00</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" style="margin-top: 1.5rem; width: 100%; font-size: 1rem; padding: 0.8rem;" onclick="checkoutFEFOBill()">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Generate Invoice & Update Stock
+                            </button>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- View 8: Medicines Catalog -->
+                <section id="view-medicines-catalog" class="view-panel">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2>Medicines Catalog</h2>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Unified list of medicine types with total stock count & closest expiry dates.</p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <input type="text" id="catalog-search" class="form-input" placeholder="Search medicines..." oninput="renderMedicinesCatalog()" style="max-width: 250px;">
+                                <button class="btn btn-primary" onclick="navigateTo('stock-entry')"><i class="fa-solid fa-plus"></i> Add New Entry</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Medicine Name</th>
+                                        <th>Category</th>
+                                        <th>Total Batches</th>
+                                        <th>Total Quantity</th>
+                                        <th>Closest Expiry Batch</th>
+                                        <th>Expiry Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalog-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 9: Stock Batch Entry -->
+                <section id="view-stock-entry" class="view-panel">
+                    <!-- Top Prominent Options Row -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; justify-content: flex-start; flex-wrap: wrap;">
+                        <button class="btn btn-register-coral" onclick="navigateTo('stock-entry')" style="padding: 0.6rem 1.2rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; gap: 0.5rem; text-transform: none;">
+                            Add Record <i class="fa-solid fa-circle-plus"></i>
+                        </button>
+                        <button class="btn btn-register-coral" onclick="navigateTo('inventory-overview')" style="padding: 0.6rem 1.2rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; gap: 0.5rem; text-transform: none; background-color: #f05a30; opacity: 0.85;">
+                            View Record <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button class="btn btn-register-coral" onclick="navigateTo('billing-fefo')" style="padding: 0.6rem 1.2rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; gap: 0.5rem; text-transform: none; background-color: #f05a30; opacity: 0.85;">
+                            Sell <i class="fa-solid fa-cart-shopping"></i>
+                        </button>
+                    </div>
+
+                    <div style="max-width: 1000px; margin: 0 auto;" class="card">
+                        <div class="register-layout-grid">
+                            
+                            <!-- Left Column: Stock Entry Form -->
+                            <div class="register-form-pane">
+                                <form onsubmit="handleStockBatchSubmit(event)">
+                                    
+                                    <!-- Row 1: Batch No, Med Name, Manf. Name -->
+                                    <div class="form-row-three">
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-batch-id" class="form-input-clean" placeholder="Batch No" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-med-name" class="form-input-clean" placeholder="Med Name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-manf-name" class="form-input-clean" placeholder="Manf. Name">
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 2: Manf. Date, Exp. Date -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" placeholder="Manf. Date" onfocus="(this.type='date')" onblur="(this.type='text')" id="stock-entry-manf-date" class="form-input-clean">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" placeholder="Exp. Date" onfocus="(this.type='date')" onblur="(this.type='text')" id="stock-entry-expiry" class="form-input-clean" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 3: Buying Cost, MRP, Discount Cost -->
+                                    <div class="form-row-three">
+                                        <div class="form-group">
+                                            <input type="number" id="stock-entry-cost" class="form-input-clean" placeholder="Buying Cost" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="number" id="stock-entry-mrp" class="form-input-clean" placeholder="MRP" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="number" id="stock-entry-discount" class="form-input-clean" placeholder="Discount Cost" step="0.01" min="0">
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 4: Consumer Cost, Prescription Needed -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="number" id="stock-entry-retail" class="form-input-clean" placeholder="Consumer Cost" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <select id="stock-entry-rx-needed" class="form-input-clean" style="height: 100%;">
+                                                <option value="" disabled selected>Prescription Needed</option>
+                                                <option value="Yes">Yes</option>
+                                                <option value="No">No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 5: Seller Id, Seller Name, Category -->
+                                    <div class="form-row-three">
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-seller-id" class="form-input-clean" placeholder="Seller Id">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-dealer" class="form-input-clean" placeholder="Seller Name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-category" class="form-input-clean" placeholder="Category">
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 6: Client ID, Date of Entry -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" id="stock-entry-client-id" class="form-input-clean" placeholder="Client ID">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" placeholder="Date of Entry" onfocus="(this.type='date')" onblur="(this.type='text')" id="stock-entry-date-entry" class="form-input-clean">
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 7: Date of Dispatch, Qty -->
+                                    <div class="form-row-two">
+                                        <div class="form-group">
+                                            <input type="text" placeholder="Date of Dispatch" onfocus="(this.type='date')" onblur="(this.type='text')" id="stock-entry-date-dispatch" class="form-input-clean">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="number" id="stock-entry-qty" class="form-input-clean" placeholder="Qty" min="1" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 8: Type of Medicine -->
+                                    <div class="form-group" style="margin-bottom: 2rem;">
+                                        <input type="text" id="stock-entry-type-med" class="form-input-clean" placeholder="Type of Medicine">
+                                    </div>
+
+                                    <!-- Save Button -->
+                                    <button type="submit" class="btn btn-register-coral" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> SAVE</button>
+                                </form>
+                            </div>
+
+                            <!-- Right Column: Welcome branding & SVG illustration -->
+                            <div class="register-branding-pane">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                                    <i class="fa-solid fa-boxes-stacked" style="font-size: 2.2rem; color: #f05a30;"></i>
+                                    <span style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); letter-spacing: -1px;">StockEasy</span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 2rem;">Now it is very easy to maintain stock.<br>Save your time and enjoy the day.</p>
+                                
+                                <!-- Premium Pharmacist illustration -->
+                                <div class="pharmacist-illustration-container">
+                                    <svg viewBox="0 0 400 300" width="100%" height="220" style="display: block; margin: 0 auto;">
+                                        <defs>
+                                            <radialGradient id="glow-grad-stock" cx="50%" cy="50%" r="50%">
+                                                <stop offset="0%" stop-color="rgba(240, 90, 48, 0.15)" />
+                                                <stop offset="100%" stop-color="rgba(240, 90, 48, 0)" />
+                                            </radialGradient>
+                                        </defs>
+                                        <!-- Glowing background circle -->
+                                        <circle cx="200" cy="150" r="120" fill="url(#glow-grad-stock)" />
+                                        
+                                        <!-- Central Pulse Heart shape -->
+                                        <circle cx="200" cy="120" r="45" fill="rgba(240, 90, 48, 0.1)" />
+                                        <path d="M200 95 C190 85, 170 85, 160 95 C150 105, 150 125, 170 145 L200 175 L230 145 C250 125, 250 105, 240 95 C230 85, 210 85, 200 95 Z" fill="#f05a30" opacity="0.8" />
+                                        <!-- Pulse lines -->
+                                        <path d="M175 120 L188 120 L193 110 L198 135 L203 115 L207 125 L212 120 L225 120" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                        
+                                        <!-- Left Figure: Pharmacist Man -->
+                                        <g transform="translate(100, 100)">
+                                            <!-- Head -->
+                                            <circle cx="20" cy="40" r="16" fill="#fbcfe8" />
+                                            <path d="M10 30 C12 15, 28 15, 30 30 Z" fill="#475569" />
+                                            <!-- Body / White Coat -->
+                                            <path d="M4 60 C4 55, 36 55, 36 60 L36 120 L4 120 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                                            <path d="M4 60 L14 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <path d="M36 60 L26 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <!-- Shirt -->
+                                            <rect x="18" y="56" width="4" height="20" fill="#f05a30" />
+                                            <path d="M12 60 C12 75, 28 75, 28 60" stroke="#475569" stroke-width="1.5" fill="none" />
+                                            <!-- Legs -->
+                                            <rect x="8" y="120" width="8" height="25" fill="#475569" />
+                                            <rect x="24" y="120" width="8" height="25" fill="#475569" />
+                                            <!-- Shoes -->
+                                            <path d="M8 145 C8 140, 20 140, 20 145 Z" fill="#f05a30" />
+                                            <path d="M24 145 C24 140, 36 140, 36 145 Z" fill="#f05a30" />
+                                        </g>
+
+                                        <!-- Right Figure: Pharmacist Woman -->
+                                        <g transform="translate(260, 100)">
+                                            <!-- Head -->
+                                            <circle cx="20" cy="40" r="16" fill="#fed7aa" />
+                                            <path d="M5 40 C5 20, 35 20, 35 40 L38 52 L2 52 Z" fill="#1e293b" />
+                                            <!-- Body / White Coat -->
+                                            <path d="M4 60 C4 55, 36 55, 36 60 L36 115 L4 115 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                                            <path d="M4 60 L14 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <path d="M36 60 L26 90 L20 60" stroke="#cbd5e1" stroke-width="1.5" fill="none" />
+                                            <!-- Blue Skirt -->
+                                            <path d="M6 115 L34 115 L36 130 L4 130 Z" fill="#475569" />
+                                            <!-- Legs -->
+                                            <rect x="10" y="130" width="6" height="15" fill="#fed7aa" />
+                                            <rect x="24" y="130" width="6" height="15" fill="#fed7aa" />
+                                            <!-- Shoes -->
+                                            <path d="M6 145 L16 145 L20 149 L6 149 Z" fill="#f05a30" />
+                                            <path d="M20 145 L30 145 L34 149 L20 149 Z" fill="#f05a30" />
+                                        </g>
+                                    </svg>
+                                </div>
+
+                                <!-- Footer details -->
+                                <div style="margin-top: 2rem;">
+                                    <div class="social-links-row" style="display:flex; justify-content:center; gap:1.5rem; font-size:1.1rem; color:var(--text-muted); margin-bottom: 0.75rem;">
+                                        <i class="fa-brands fa-facebook-f social-icon-hover"></i>
+                                        <i class="fa-brands fa-google social-icon-hover"></i>
+                                        <i class="fa-brands fa-twitter social-icon-hover"></i>
+                                        <i class="fa-brands fa-instagram social-icon-hover"></i>
+                                    </div>
+                                    <span style="font-size:0.75rem; color:var(--text-muted);">© Copyright - StockEasy</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 10: Inventory Overview (Urgency shading + Filtering) -->
+                <section id="view-inventory-overview" class="view-panel">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+                            <div>
+                                <h2>Inventory Overview</h2>
+                                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Track individual medicine batches categorized by expiry risk.</p>
+                            </div>
+                            
+                            <!-- Filter Badges -->
+                            <div class="inventory-filters">
+                                <span class="filter-badge active" id="inv-filter-all" onclick="setInventoryFilter('all')">All Stock</span>
+                                <span class="filter-badge" id="inv-filter-expiring" onclick="setInventoryFilter('expiring')">Expiring Soon (&lt;90 Days)</span>
+                                <span class="filter-badge" id="inv-filter-outofstock" onclick="setInventoryFilter('outofstock')">Out of Stock</span>
+                                <span class="filter-badge" id="inv-filter-dead" onclick="setInventoryFilter('dead')">Dead Stock (&gt;30d Unsold)</span>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Medicine Name</th>
+                                        <th>Batch ID</th>
+                                        <th>Dealer/Supplier</th>
+                                        <th>Stock Quantity</th>
+                                        <th>Expiry Date</th>
+                                        <th>Cost Price</th>
+                                        <th>Selling Price</th>
+                                        <th>Shelf Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 11: Dealers & Suppliers Page -->
+                <section id="view-dealers" class="view-panel">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2>Dealers & Suppliers</h2>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Monitor dealers metrics and expiry loss liabilities.</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="openAddDealerModal()"><i class="fa-solid fa-plus"></i> Add New Supplier</button>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Name</th>
+                                        <th>Contact Person</th>
+                                        <th>Email / Phone</th>
+                                        <th>Total Batches Supplied</th>
+                                        <th>Value of Active Stock ($)</th>
+                                        <th style="color: var(--danger);">Value of Expired Stock ($)</th>
+                                        <th>Liabilities Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dealers-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Add Dealer Mini-Card Overlay Modal (Simulated in HTML for UI simplicity) -->
+                    <div id="add-dealer-modal" class="modal-overlay">
+                        <div class="modal-content">
+                            <h3><i class="fa-solid fa-truck-ramp-box"></i> Add New Supplier</h3>
+                            <form onsubmit="handleDealerSubmit(event)" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Dealer Business Name *</label>
+                                    <input type="text" id="dealer-name" class="form-input" placeholder="e.g. Apex Pharma Distributors" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Contact Person *</label>
+                                        <input type="text" id="dealer-contact" class="form-input" placeholder="e.g. Mike Vance" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Contact Phone *</label>
+                                        <input type="tel" id="dealer-phone" class="form-input" placeholder="+1 (555) 012-9283" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" id="dealer-email" class="form-input" placeholder="e.g. orders@apexpharma.com" required>
+                                </div>
+                                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                                    <button type="button" class="btn btn-secondary" onclick="closeDealerModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Supplier</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 12: Owner Analytics Dashboard -->
+                <section id="view-owner-analytics" class="view-panel">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2>Owner Analytics Dashboard</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Visual insights on revenues, popular items, and expiry write-offs.</p>
+                    </div>
+
+                    <div class="grid-cols-2">
+                        <div class="card">
+                            <h3><i class="fa-solid fa-chart-line"></i> Revenue Trend (7 Days)</h3>
+                            <div class="chart-container">
+                                <canvas id="ownerSalesTrendChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3><i class="fa-solid fa-ranking-star"></i> Top Selling Medicines</h3>
+                            <div class="chart-container">
+                                <canvas id="ownerTopSellersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-cols-2" style="margin-top: 1.5rem;">
+                        <div class="card">
+                            <h3><i class="fa-solid fa-trash-can"></i> Expiry Loss Trend (Month-on-Month)</h3>
+                            <div class="chart-container">
+                                <canvas id="ownerExpiryLossChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <h3><i class="fa-solid fa-clipboard-list"></i> FEFO Compliance Summary</h3>
+                                <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+                                    <div style="background-color: var(--success-bg); border-left: 4px solid var(--success); padding: 0.75rem 1rem; border-radius: var(--border-radius);">
+                                        <strong style="color: var(--success);">100% FEFO Compliance</strong>
+                                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Your sales complied fully with nearest-expiry guidelines today. Great job keeping wastage to $0.00.</p>
+                                    </div>
+                                    <div style="background-color: var(--bg-input); padding: 0.75rem 1rem; border-radius: var(--border-radius); display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <strong>FEFO Sales Completed</strong>
+                                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Total automated checks verified</p>
+                                        </div>
+                                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="analytics-fefo-count">12</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
+                                Compliance audits are locked in cryptographical logs on Stock Easy networks.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 13: Bills/Sales History -->
+                <section id="view-bills-history" class="view-panel">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2>Bills & Sales History</h2>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Search and manage customer invoices issued by this pharmacy.</p>
+                            </div>
+                            <input type="text" id="bill-history-search" class="form-input" placeholder="Search bill ID or customer name..." oninput="renderBillsHistory()" style="max-width: 250px;">
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Invoice ID</th>
+                                        <th>Date & Time</th>
+                                        <th>Customer</th>
+                                        <th>Medicines Issued</th>
+                                        <th>Total Paid ($)</th>
+                                        <th>FEFO Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bills-history-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 14: Settings & Profile -->
+                <section id="view-settings" class="view-panel">
+                    <div class="tab-container">
+                        <button class="tab-btn active" id="set-tab-profile" onclick="switchSettingsTab('profile')">Pharmacy Profile</button>
+                        <button class="tab-btn" id="set-tab-staff" onclick="switchSettingsTab('staff')">Staff Management</button>
+                        <button class="tab-btn" id="set-tab-sub" onclick="switchSettingsTab('sub')">SaaS Subscription</button>
+                    </div>
+
+                    <!-- Profile Section -->
+                    <div id="settings-pane-profile" class="card settings-sub-pane">
+                        <h3><i class="fa-solid fa-store"></i> Shop Profile Details</h3>
+                        <form onsubmit="handleSaveSettingsProfile(event)" style="margin-top: 1rem;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Registered Shop Name</label>
+                                    <input type="text" id="set-shop-name" class="form-input" value="City Care Pharmacy">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Owner Name</label>
+                                    <input type="text" id="set-owner-name" class="form-input" value="Dr. John Doe">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Store Email</label>
+                                    <input type="email" id="set-shop-email" class="form-input" value="owner@citypharma.com" readonly style="opacity: 0.6; cursor: not-allowed;">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Phone Contact</label>
+                                    <input type="tel" id="set-shop-phone" class="form-input" value="+1 (555) 019-2834">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Store Address</label>
+                                <textarea id="set-shop-address" class="form-input" style="height: 60px;">402 Medicine Row, Health District, NY 10001</textarea>
+                            </div>
+                            
+                            <hr style="border: 0; border-top: 1px solid var(--bg-card-border); margin: 1.5rem 0;">
+                            
+                            <h3><i class="fa-solid fa-lock"></i> Security & Password</h3>
+                            <div class="form-row" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Current Password</label>
+                                    <input type="password" id="set-pass-old" class="form-input" placeholder="••••••••">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">New Password</label>
+                                    <input type="password" id="set-pass-new" class="form-input" placeholder="Min. 8 characters">
+                                </div>
+                            </div>
+                            
+                            <div style="display:flex; justify-content:flex-end; margin-top: 1.5rem;">
+                                <button type="submit" class="btn btn-primary">Save Profile & Security Changes</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Staff Section -->
+                    <div id="settings-pane-staff" class="card settings-sub-pane" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3><i class="fa-solid fa-users"></i> Pharmacy Staff Members</h3>
+                            <button class="btn btn-primary" onclick="openAddStaffModal()" style="font-size: 0.8rem; padding: 0.5rem 1rem;">+ Add Staff Member</button>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Staff Name</th>
+                                        <th>Email Address</th>
+                                        <th>System Role</th>
+                                        <th>Join Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="settings-staff-tbody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Section -->
+                    <div id="settings-pane-sub" class="card settings-sub-pane" style="display: none;">
+                        <h3><i class="fa-solid fa-credit-card"></i> Manage SaaS License</h3>
+                        <div style="background-color: var(--success-bg); border-left: 4px solid var(--success); padding: 1rem; border-radius: var(--border-radius); display: flex; justify-content: space-between; align-items: center; margin: 1rem 0;">
+                            <div>
+                                <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--success);">Active Plan</span>
+                                <h2 id="settings-active-sub-title" style="color:var(--text-main); margin-top: 0.25rem;">Pro Plan ($59.00 / month)</h2>
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Next billing date: <strong>July 14, 2026</strong> via Credit Card ending in 4928</p>
+                            </div>
+                            <span class="badge-status status-approved">Status: Active</span>
+                        </div>
+
+                        <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Change Subscription Tier</h4>
+                        <div class="pricing-plans" style="margin-top: 0;">
+                            <div class="card pricing-card" id="sub-card-Base">
+                                <h3>Base Tier</h3>
+                                <div class="price">$29<span>/mo</span></div>
+                                <button class="btn btn-secondary" onclick="updateSubscriptionTier('Base')" style="width:100%;">Downgrade to Base</button>
+                            </div>
+                            <div class="card pricing-card premium" id="sub-card-Pro">
+                                <h3>Pro Tier</h3>
+                                <div class="price">$59<span>/mo</span></div>
+                                <button class="btn btn-primary" disabled style="width:100%; opacity:0.6; cursor:not-allowed;">Current Plan</button>
+                            </div>
+                            <div class="card pricing-card" id="sub-card-Enterprise">
+                                <h3>Enterprise</h3>
+                                <div class="price">$149<span>/mo</span></div>
+                                <button class="btn btn-secondary" onclick="updateSubscriptionTier('Enterprise')" style="width:100%;">Upgrade to Enterprise</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Staff Modal -->
+                    <div id="add-staff-modal" class="modal-overlay">
+                        <div class="modal-content">
+                            <h3><i class="fa-solid fa-user-plus"></i> Add Staff Member</h3>
+                            <form onsubmit="handleStaffSubmit(event)" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Full Name *</label>
+                                    <input type="text" id="staff-name" class="form-input" placeholder="e.g. Sarah Connor" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" id="staff-email" class="form-input" placeholder="e.g. sarah@citypharma.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Assigned Role *</label>
+                                    <select id="staff-role" class="form-select">
+                                        <option value="pharmacist">Pharmacist (Full FEFO POS Access)</option>
+                                        <option value="billing_clerk">Billing Clerk (POS Entry Only)</option>
+                                        <option value="inventory_manager">Inventory Manager (Stock Batches Only)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                                    <button type="button" class="btn btn-secondary" onclick="closeStaffModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Add Member</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- View 15: Central Oversight Dashboard (System Admin) -->
+                <section id="view-central-oversight" class="view-panel">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2>Central Control Panel</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Audit drug licenses, manage billing structures, and analyze platform health.</p>
+                    </div>
+
+                    <!-- Central Tabs -->
+                    <div class="tab-container">
+                        <button class="tab-btn active" id="central-tab-approvals" onclick="switchCentralTab('approvals')">License Verifications</button>
+                        <button class="tab-btn" id="central-tab-analytics" onclick="switchCentralTab('analytics')">Platform Analytics</button>
+                        <button class="tab-btn" id="central-tab-health" onclick="switchCentralTab('health')">Platform Health</button>
+                        <button class="tab-btn" id="central-tab-settings" onclick="switchCentralTab('settings')">SaaS Billing Settings</button>
+                    </div>
+
+                    <!-- License Verifications Pane -->
+                    <div id="central-pane-approvals" class="card central-sub-pane">
+                        <h3><i class="fa-solid fa-file-signature"></i> Pending License Verification Audits</h3>
+                        <div class="table-container" style="margin-top: 1rem;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Shop Name</th>
+                                        <th>Owner Info</th>
+                                        <th>License ID</th>
+                                        <th>PAN / GSTIN</th>
+                                        <th>Documents Status</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="central-verifications-tbody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Platform Analytics Pane -->
+                    <div id="central-pane-analytics" class="card central-sub-pane" style="display: none;">
+                        <h3><i class="fa-solid fa-globe"></i> Platform-Wide SaaS Metrics</h3>
+                        
+                        <div class="kpi-container" style="margin-top: 1.25rem;">
+                            <div class="card kpi-card" style="background-color: var(--bg-input);">
+                                <div class="kpi-icon" style="background-color: rgba(139, 92, 246, 0.15); color: #c084fc;"><i class="fa-solid fa-hospital-user"></i></div>
+                                <div class="kpi-info">
+                                    <h3>Total Registered Shops</h3>
+                                    <span id="central-kpi-shops" style="font-size: 1.5rem; font-weight: 700;">8 Active</span>
+                                </div>
+                            </div>
+                            <div class="card kpi-card" style="background-color: var(--bg-input);">
+                                <div class="kpi-icon" style="background-color: rgba(16, 185, 129, 0.15); color: var(--success);"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                                <div class="kpi-info">
+                                    <h3>Aggregate Sales Today</h3>
+                                    <span id="central-kpi-sales" style="font-size: 1.5rem; font-weight: 700;">$9,450.00</span>
+                                </div>
+                            </div>
+                            <div class="card kpi-card" style="background-color: var(--bg-input);">
+                                <div class="kpi-icon" style="background-color: rgba(6, 182, 212, 0.15); color: var(--primary);"><i class="fa-solid fa-piggy-bank"></i></div>
+                                <div class="kpi-info">
+                                    <h3>Estimated Monthly SaaS Rev</h3>
+                                    <span id="central-kpi-saas" style="font-size: 1.5rem; font-weight: 700;">$2,450.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-cols-2" style="margin-top: 1.5rem;">
+                            <div>
+                                <h4>SaaS Subscription Distribution</h4>
+                                <div class="chart-container" style="height: 180px;">
+                                    <canvas id="centralSaaSDistributionChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4>Top Performing Shops</h4>
+                                <div class="table-container" style="max-height: 180px;">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Shop Name</th>
+                                                <th>SaaS Plan</th>
+                                                <th>Sales Today</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="central-top-shops-tbody">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Health Pane -->
+                    <div id="central-pane-health" class="card central-sub-pane" style="display: none;">
+                        <h3><i class="fa-solid fa-heart-pulse"></i> Platform Performance Logs</h3>
+                        
+                        <div class="grid-cols-3" style="margin-top: 1.25rem;">
+                            <div class="card" style="background-color: var(--bg-input); text-align: center;">
+                                <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">API Uptime</span>
+                                <h2 style="color: var(--success); font-size: 2rem; margin: 0.5rem 0;">99.98%</h2>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">All endpoints responding correctly</p>
+                            </div>
+                            <div class="card" style="background-color: var(--bg-input); text-align: center;">
+                                <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">FEFO Compliance (Avg)</span>
+                                <h2 style="color: var(--primary); font-size: 2rem; margin: 0.5rem 0;">98.7%</h2>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Strict expiry logic tracking active</p>
+                            </div>
+                            <div class="card" style="background-color: var(--bg-input); text-align: center;">
+                                <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Platform Latency</span>
+                                <h2 style="color: var(--success); font-size: 2rem; margin: 0.5rem 0;">48 ms</h2>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Database read/writes optimized</p>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-top: 2rem; margin-bottom: 0.75rem;">System Logs</h4>
+                        <div style="font-family: monospace; font-size: 0.8rem; background-color: var(--bg-main); border:1px solid var(--bg-card-border); border-radius:var(--border-radius); padding: 1rem; color: #10b981; line-height: 1.5; max-height: 150px; overflow-y: auto;">
+                            <div>[INFO] 2026-06-14 00:10:32 - Sync database backup successful to AWS region US-East.</div>
+                            <div>[INFO] 2026-06-14 00:12:45 - License verify webhook triggered for Shop ID #02.</div>
+                            <div>[INFO] 2026-06-14 00:14:12 - Paracetamol batch decrement completed successfully for customer Walk-in.</div>
+                            <div>[INFO] 2026-06-14 00:18:02 - System metrics recalculated: compliance remains high at 98.7%.</div>
+                        </div>
+                    </div>
+
+                    <!-- SaaS Billing Settings Pane -->
+                    <div id="central-pane-settings" class="card central-sub-pane" style="display: none;">
+                        <h3><i class="fa-solid fa-sliders"></i> Global Platform SaaS Pricing Rules</h3>
+                        <form onsubmit="handleCentralSettingsSubmit(event)" style="margin-top: 1.25rem;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Base Plan Price ($/month) *</label>
+                                    <input type="number" id="cset-base-price" class="form-input" value="29">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Pro Plan Price ($/month) *</label>
+                                    <input type="number" id="cset-pro-price" class="form-input" value="59">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Enterprise Plan Price ($/month) *</label>
+                                    <input type="number" id="cset-ent-price" class="form-input" value="149">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Default Expiry Red Alert Boundary (Days)</label>
+                                    <input type="number" id="cset-days-red" class="form-input" value="30">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Default Expiry Orange Alert Boundary (Days)</label>
+                                    <input type="number" id="cset-days-orange" class="form-input" value="90">
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Update Global System Settings</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- AI Assistant Widget -->
+    <div id="ai-copilot-bubble" class="ai-copilot-toggle pulsing" onclick="toggleAICopilot()">
+        <i class="fa-solid fa-robot"></i>
+    </div>
+    
+    <div id="ai-copilot-panel" class="ai-panel">
+        <div class="ai-header">
+            <span><i class="fa-solid fa-circle-nodes"></i> Stock Easy AI Assistant</span>
+            <button onclick="toggleAICopilot()" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.25rem;"><i class="fa-solid fa-minus"></i></button>
+        </div>
+        
+        <div class="ai-messages" id="ai-messages-container">
+            <div class="ai-msg bot">
+                Hello! I am your Stock Easy local AI assistant. I can query details about your stock batches, sales history, and expiry deadlines. Ask me anything!
+            </div>
+        </div>
+        
+        <!-- Prompt chips for easy demoing -->
+        <div class="ai-prompt-chips">
+            <span class="ai-chip" onclick="triggerAISkipQuery('What medicines expire next?')">Show Expiring Next</span>
+            <span class="ai-chip" onclick="triggerAISkipQuery('What is my total stock value?')">Stock Value</span>
+            <span class="ai-chip" onclick="triggerAISkipQuery('Check dead stock items')">Dead Stock</span>
+            <span class="ai-chip" onclick="triggerAISkipQuery('Calculate today\'s sales')">Today's Sales</span>
+        </div>
+        
+        <form onsubmit="handleAICopilotSubmit(event)" class="ai-input-area">
+            <input type="text" id="ai-input-text" class="form-input" placeholder="Type a question in plain English..." style="flex: 1;" autocomplete="off">
+            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+    </div>
+
+    <!-- App JavaScript Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
